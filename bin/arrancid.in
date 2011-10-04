@@ -615,6 +615,27 @@ sub WriteTerm {
     return(0);
 }
 
+sub DiffConfig {
+    print STDERR "    In DiffConfig: $_" if ($debug);
+
+    $havediffs = 0;
+    while (<INPUT>) {
+	tr/\015//d;
+	last if (/^$prompt/);
+	next if (/^(\s*|\s*$cmd\s*)$/);
+
+	ProcessHistory("DIFFS","keysort","BB","!$_");
+        $havediffs = 1;
+    }
+    if ($havediffs) {
+        ProcessHistory("DIFFS","keysort","AA","!*****************************\n");
+        ProcessHistory("DIFFS","keysort","AB","!*** unsaved changes exist ***\n");
+        ProcessHistory("DIFFS","keysort","AC","!*****************************\n");
+        ProcessHistory("DIFFS","keysort","CC","!\n");
+    }
+    return;
+}
+
 # dummy function
 sub DoNothing {print STDOUT;}
 
@@ -627,6 +648,7 @@ sub DoNothing {print STDOUT;}
 	{'show inventory'		=> 'ShowInventory'},
         {'show boot-extensions'         => 'ShowBootExt'},
         {'show extensions'              => 'ShowExt'},
+	{'diff startup-config running-config' => 'DiffConfig'},
 	{'show running-config'		=> 'WriteTerm'},
 );
 # Use an array to preserve the order of the commands and a hash for mapping
