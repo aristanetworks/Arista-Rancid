@@ -225,7 +225,7 @@ sub ShowEnv {
             $supplies = 1;
             next;
         }
-        $supplies && /^\s*(\d+)\s+(\S+)\s+(\S+)\s+\S+\s+\S+\s+\S+\s+(\S+)/ &&
+        $supplies && /^\s*(\d+)\s+(\S+)\s+(\S+)\s+\S+\s+\S+\s+\S+\s+(.+)/ &&
             ProcessHistory("COMMENTS","keysort","E2","!Power Supply $1: $2 $3 $4\n" ) && next;
     }
     ProcessHistory("COMMENTS","","","!\n");
