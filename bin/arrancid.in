@@ -408,41 +408,9 @@ sub WriteTerm {
 	    }
 	    next;
 	}
-	# cisco AP w/ IOS
-	if (/^(wlccp \S+ username (\S+)(\s.*)? password) (\d \S+|\S+)/) {
-	    if ($filter_pwds >= 1) {
-		ProcessHistory("USER","keysort","$2","!$1 <removed>\n");
-	    } else {
-		ProcessHistory("USER","keysort","$2","$_");
-	    }
-	    next;
-	}
-	if (/^( set session-key (in|out)bound ah \d+ )/ && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1<removed>\n");
-	    next;
-	}
-	if (/^( set session-key (in|out)bound esp \d+ (authenticator|cypher) )/
-	    && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1<removed>\n");
-	    next;
-	}
-	if (/^(\s*)password / && $filter_pwds >= 1) {
-	    ProcessHistory("LINE-PASS","","","!$1password <removed>\n");
-	    next;
-	}
-	if (/^(\s*)secret / && $filter_pwds >= 2) {
-	    ProcessHistory("LINE-PASS","","","!$1secret <removed>\n");
-	    next;
-	}
 	if (/^\s*neighbor (\S*) password / && $filter_pwds >= 1) {
 	    ProcessHistory("","","","! neighbor $1 password <removed>\n");
 	    next;
-	}
-	if (/^(ppp .* password) 7 .*/ && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed>\n"); next;
-	}
-	if (/^(ip ftp password) / && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed>\n"); next;
 	}
 	if (/^( ip ospf authentication-key) / && $filter_pwds >= 1) {
 	    ProcessHistory("","","","!$1 <removed>\n"); next;
@@ -463,57 +431,6 @@ sub WriteTerm {
 	if (/^(  message-digest-key \d+ md5 (7|encrypted)) /
 	    && $filter_pwds >= 1) {
 	    ProcessHistory("","","","!$1 <removed>\n"); next;
-	}
-	if (/^((crypto )?isakmp key) \S+ / && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed> $'"); next;
-	}
-	# filter HSRP passwords
-	if (/^(\s+standby \d+ authentication) / && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed>\n"); next;
-	}
-	# this appears in "measurement/sla" images
-	if (/^(\s+key-string \d?)/ && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed>\n"); next;
-	}
-	if (/^( l2tp tunnel \S+ password)/ && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed>\n"); next;
-	}
-	# i am told these are plain-text on the PIX
-	if (/^(vpdn username (\S+) password)/) {
-	    if ($filter_pwds >= 1) {
-		ProcessHistory("USER","keysort","$2","!$1 <removed>\n");
-	    } else {
-		ProcessHistory("USER","keysort","$2","$_");
-	    }
-	    next;
-	}
-	# ASA/PIX keys in more system:running-config
-	if (/^( pre-shared-key |failover key ).*/ && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed> $'"); next;
-	}
-	#
-	if (/^( cable shared-secret )/ && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!$1 <removed>\n");
-	    next;
-	}
-	/fair-queue individual-limit/ && next;
-	# sort ip explicit-paths.
-	if (/^ip explicit-path name (\S+)/) {
-	    my($key) = $1;
-	    my($expath) = $_;
-	    while (<INPUT>) {
-		tr/\015//d;
-		last if (/^$prompt/);
-		last if (/^$prompt/ || ! /^(ip explicit-path name |[ !])/);
-		if (/^ip explicit-path name (\S+)/) {
-		    ProcessHistory("EXPATH","keysort","$key","$expath");
-		    $key = $1;
-		    $expath = $_;
-		} else  {
-		    $expath .= $_;
-		}
-	    }
-	    ProcessHistory("EXPATH","keysort","$key","$expath");
 	}
 	# sort route-maps
 	if (/^route-map (\S+)/) {
@@ -597,9 +514,6 @@ sub WriteTerm {
 	    && $filter_pwds >= 1) {
 	    ProcessHistory("","","","!$1 <removed>$'"); next;
 	}
-	# order clns host statements
-	/^clns host \S+ (\S+)/ &&
-	    ProcessHistory("CLNS","keysort","$1","$_") && next;
 	# order alias statements
 	/^alias / && ProcessHistory("ALIAS","keysort","$_","$_") && next;
 	# delete ntp auth password - this md5 is a reversable too
@@ -612,28 +526,6 @@ sub WriteTerm {
 	    ProcessHistory("NTP","keysort",$sortkey,"$_");
 	    next;
 	}
-	# order ip host statements
-	/^ip host (\S+) / &&
-	    ProcessHistory("IPHOST","keysort","$1","$_") && next;
-	# order ip nat source static statements
-	/^ip nat (\S+) source static (\S+)/ &&
-	    ProcessHistory("IP NAT $1","ipsort","$2","$_") && next;
-	# order atm map-list statements
-	/^\s+ip\s+(\d+\.\d+\.\d+\.\d+)\s+atm-vc/ &&
-	    ProcessHistory("ATM map-list","ipsort","$1","$_") && next;
-	# order ip rcmd lines
-	/^ip rcmd/ && ProcessHistory("RCMD","keysort","$_","$_") && next;
-
-	# system controller
-	/^syscon address (\S*) (\S*)/ &&
-	    ProcessHistory("","","","!syscon address $1 <removed>\n") &&
-	    next;
-	if (/^syscon password (\S*)/ && $filter_pwds >= 1) {
-	    ProcessHistory("","","","!syscon password <removed>\n");
-	    next;
-	}
-
-	/^ *Cryptochecksum:/ && next;
 
 	# catch anything that wasnt matched above.
 	ProcessHistory("","","","$_");
