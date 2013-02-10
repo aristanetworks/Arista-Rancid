@@ -343,6 +343,23 @@ sub ShowInventory {
     return(0);
 }
 
+# This routine parses "show tech ribd running" for Ribd sub-code commands running.
+sub WriteRibd {
+    print STDERR "    In WriteRibd: $_" if ($debug);
+ 
+    while (<INPUT>) {
+        tr/\015//d;
+        last if (/^$prompt/);
+        next if (/^(\s*|\s*$cmd\s*)$/);
+        return(1) if /^% Invalid input/;
+        return(0) if /^% Error displaying /;    # Only do this routine once
+ 
+        ProcessHistory("RIBD","","","!Ribd: $_");
+    }
+    ProcessHistory("RIBD","","","!\n");
+    return(0);
+}
+
 # This routine processes a "write term"
 sub WriteTerm {
     print STDERR "    In WriteTerm: $_" if ($debug);
@@ -664,6 +681,7 @@ sub DoNothing {print STDOUT;}
         {'show boot-extensions'         => 'ShowBootExt'},
         {'show extensions'              => 'ShowExt'},
 	{'diff startup-config running-config' => 'DiffConfig'},
+	#{'show tech ribd running'	=> 'WriteRibd'},
 	{'show running-config'		=> 'WriteTerm'},
 );
 # Use an array to preserve the order of the commands and a hash for mapping
