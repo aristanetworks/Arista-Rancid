@@ -305,19 +305,11 @@ sub ShowFlash {
         # skip its updates.
         /\spersist$/ && next;
 
-        if (/.*\((\d+) bytes free\)/) {
-            my($tmp) = $1;
-            if ($tmp >= (1024 * 1024 * 1024)) {
-                $tmp = int($tmp / (1024 * 1024 * 1024));
-                s/$1 bytes free/$tmp GB free/;
-            } elsif ($tmp >= (1024 * 1024)) {
-                $tmp = int($tmp / (1024 * 1024));
-                s/$1 bytes free/$tmp MB free/;
-            } else {
-                $tmp = int($tmp / 1024);
-                s/$1 bytes free/$tmp KB free/;
-            }
-        }
+        # Scheduled commands can cause free space to constantly
+        # change.  Even the trick of summarizing the free space
+        # doesn't help, since it can oscillate, e.g., between
+        # 1006MB and 1007MB.  Just skip the free space.
+        /.*\((\d+) bytes free\)/ && next;
 
 	ProcessHistory("FLASH","","","!Flash: $_");
     }
